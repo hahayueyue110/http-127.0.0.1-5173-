@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.vite/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.DS_Store
+Thumbs.db
+02 作品内容/
+作品轮播/
+导航图/
+旧对话网页项目/
