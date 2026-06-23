@@ -1,5 +1,6 @@
 ﻿import { useEffect, useRef } from 'react';
 import GlareHover from './components/GlareHover.jsx';
+import { useState } from 'react';
 import TiltedCard from './components/TiltedCard.jsx';
 import TiltedPanel from './components/TiltedPanel.jsx';
 
@@ -58,7 +59,7 @@ const projects = [
   {
     title: 'Detail Page Design',
     category: '电商详情页',
-    image: asset('works/aigc-rice-cooker.jpg'),
+    image: asset('works/work-card-04.jpg'),
     description: '从线稿、视觉扩展到详情页落地的整套产品表达。',
   },
 ];
@@ -91,22 +92,23 @@ const featuredWorks = [
 ];
 
 const galleryWorks = [
-  { title: '净化器场景', meta: '悬浮纯净/呼吸异界', image: asset('gallery/gallery-01.jpg') },
-  { title: '扫地机器人场景', meta: '无尘边界 / 窗纳自然', image: asset('gallery/gallery-02.jpg') },
-  { title: '蒟蒻果冻场景', meta: '清润多汁 / 沁凉爽口', image: asset('gallery/gallery-03.jpg') },
-  { title: '牛乳炖蛋糕场景', meta: '云柔蛋奶/晴空嫩滑', image: asset('gallery/gallery-04.jpg') },
-  { title: '美妆场景', meta: '晶透肽润 / 虫草沁水', image: asset('gallery/gallery-05.jpg') },
-  { title: '手机场景', meta: '超广掌镜 / 仰拍动势', image: asset('gallery/gallery-06.jpg') },
-  { title: '挂脖风扇场景', meta: '雪颈凉涡 / 卧冰扇爽', image: asset('gallery/gallery-07.jpg') },
-  { title: '蓝牙音箱场景', meta: '沙地枯木 / 复古音箱', image: asset('gallery/gallery-08.jpg') },
-  { title: '果冻场景', meta: 'Q弹冰爽 / 冻爽多汁', image: asset('gallery/gallery-09.jpg') },
+  { title: '净化器场景', meta: '悬浮纯净/呼吸异界', image: asset('gallery/gallery-01.png') },
+  { title: '扫地机器人场景', meta: '无尘边界 / 窗纳自然', image: asset('gallery/gallery-02.png') },
+  { title: '蒟蒻果冻场景', meta: '清润多汁 / 沁凉爽口', image: asset('gallery/gallery-03.png') },
+  { title: '牛乳炖蛋糕场景', meta: '云柔蛋奶/晴空嫩滑', image: asset('gallery/gallery-04.png') },
+  { title: '美妆场景', meta: '晶透肽润 / 虫草沁水', image: asset('gallery/gallery-05.png') },
+  { title: '手机场景', meta: '超广掌镜 / 仰拍动势', image: asset('gallery/gallery-06.png') },
+  { title: '挂脖风扇场景', meta: '雪颈凉涡 / 卧冰扇爽', image: asset('gallery/gallery-07.png') },
+  { title: '蓝牙音箱场景', meta: '沙地枯木 / 复古音箱', image: asset('gallery/gallery-08.png') },
+  { title: '果冻场景', meta: 'Q弹冰爽 / 冻爽多汁', image: asset('gallery/gallery-09.png') },
 ];
 
 const ipBrandWorks = [
-  { title: '软堡仔表情合集', meta: '角色表情 / 情绪延展', image: asset('ip-brand/ip-brand-01.jpg') },
-  { title: '盲盒手办系列', meta: '周边概念 / 收藏表达', image: asset('ip-brand/ip-brand-02.jpg') },
-  { title: '生活家居系列', meta: '居家应用 / 品牌延展', image: asset('ip-brand/ip-brand-03.jpg') },
-  { title: '餐饮野餐系列', meta: '场景周边 / 轻生活方式', image: asset('ip-brand/ip-brand-04.jpg') },
+  { title: 'IP基础设定页', meta: '品牌核心形象 & 世界观设定', image: asset('ip-brand/ip-brand-01.jpg') },
+  { title: 'IP人物档案', meta: '角色人设档案 & 情绪表情库', image: asset('ip-brand/ip-brand-02.jpg') },
+  { title: 'IP 标准规范', meta: '三视图 & 动态动作设计', image: asset('ip-brand/ip-brand-03.jpg') },
+  { title: 'IP形象拓展', meta: '换装 & 多元场景延展', image: asset('ip-brand/ip-brand-04.jpg') },
+  { title: 'IP全家福', meta: '全系列衍生&周边集合', image: asset('ip-brand/ip-brand-05.png') },
 ];
 
 const capabilities = [
@@ -197,84 +199,132 @@ function Hero() {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let loopWidth = 0;
     let rafId = 0;
-    let lastTime = 0;
-    let pointerId = null;
-    let startX = 0;
-    let startScrollLeft = 0;
-    let isDragging = false;
     let suppressClick = false;
-    let resumeStartTime = null;
+    let resizeRafId = 0;
+    let readyRafId = 0;
+    const state = {
+      lastTime: 0,
+      pointerId: null,
+      startX: 0,
+      startScrollLeft: 0,
+      isDragging: false,
+      resumeStartTime: null,
+      isReady: false,
+    };
     const resumeDuration = 720;
+    const loopBufferRatio = 0.5;
+    const speed = 0.045;
 
-    const measure = () => {
-      loopWidth = sets[0].getBoundingClientRect().width;
+    const setReady = () => {
+      if (state.isReady) {
+        return;
+      }
+
+      state.isReady = true;
+      carousel.classList.add('is-ready');
+    };
+
+    const setToMiddle = (force = false) => {
       if (!loopWidth) {
         return;
       }
 
-      if (carousel.scrollLeft === 0) {
+      if (force || carousel.scrollLeft === 0) {
         carousel.scrollLeft = loopWidth;
-      } else {
-        syncLoopPosition();
       }
     };
 
-    const syncLoopPosition = () => {
+    const normalizeLoopPosition = (force = false) => {
       if (!loopWidth) {
         return;
       }
 
-      if (carousel.scrollLeft >= loopWidth * 2) {
-        carousel.scrollLeft -= loopWidth;
-      } else if (carousel.scrollLeft <= 0) {
-        carousel.scrollLeft += loopWidth;
+      if (force) {
+        setToMiddle(true);
+        return;
       }
+
+      const lowerBound = loopWidth * loopBufferRatio;
+      const upperBound = loopWidth * (2 - loopBufferRatio);
+
+      if (carousel.scrollLeft <= lowerBound) {
+        carousel.scrollLeft += loopWidth;
+      } else if (carousel.scrollLeft >= upperBound) {
+        carousel.scrollLeft -= loopWidth;
+      }
+    };
+
+    const measureLoopWidth = () => {
+      loopWidth = sets[0].getBoundingClientRect().width;
+      if (!loopWidth) {
+        return false;
+      }
+
+      setToMiddle(carousel.scrollLeft === 0);
+      normalizeLoopPosition();
+      setReady();
+      return true;
+    };
+
+    const waitForLayoutReady = (attempt = 0) => {
+      if (measureLoopWidth()) {
+        return;
+      }
+
+      if (attempt >= 18) {
+        return;
+      }
+
+      readyRafId = window.requestAnimationFrame(() => {
+        waitForLayoutReady(attempt + 1);
+      });
     };
 
     const animate = (time) => {
-      if (!lastTime) {
-        lastTime = time;
+      if (!state.lastTime) {
+        state.lastTime = time;
       }
 
-      const delta = time - lastTime;
-      lastTime = time;
+      const delta = time - state.lastTime;
+      state.lastTime = time;
 
-      if (!prefersReducedMotion && !isDragging && loopWidth) {
+      if (!prefersReducedMotion && !state.isDragging && loopWidth) {
         let speedFactor = 1;
 
-        if (resumeStartTime !== null) {
-          const progress = Math.min((time - resumeStartTime) / resumeDuration, 1);
+        if (state.resumeStartTime !== null) {
+          const progress = Math.min((time - state.resumeStartTime) / resumeDuration, 1);
           speedFactor = progress * progress * (3 - 2 * progress);
 
           if (progress >= 1) {
-            resumeStartTime = null;
+            state.resumeStartTime = null;
           }
         }
 
-        carousel.scrollLeft += delta * 0.045 * speedFactor;
-        syncLoopPosition();
+        carousel.scrollLeft += delta * speed * speedFactor;
+        normalizeLoopPosition();
       }
 
       rafId = window.requestAnimationFrame(animate);
     };
 
-    const releaseDrag = (event) => {
-      if (event && pointerId !== null && 'pointerId' in event && event.pointerId !== pointerId) {
+    const endDrag = (event) => {
+      if (event && state.pointerId !== null && 'pointerId' in event && event.pointerId !== state.pointerId) {
         return;
       }
 
-      if (!isDragging && pointerId === null) {
+      if (!state.isDragging && state.pointerId === null) {
         return;
       }
 
-      if (pointerId !== null && carousel.hasPointerCapture(pointerId)) {
-        carousel.releasePointerCapture(pointerId);
+      if (state.pointerId !== null && carousel.hasPointerCapture(state.pointerId)) {
+        carousel.releasePointerCapture(state.pointerId);
       }
 
-      pointerId = null;
-      isDragging = false;
-      lastTime = 0;
-      resumeStartTime = performance.now();
+      state.pointerId = null;
+      state.isDragging = false;
+      state.lastTime = 0;
+      state.resumeStartTime = performance.now();
+      normalizeLoopPosition();
       carousel.classList.remove('is-dragging');
       window.setTimeout(() => {
         suppressClick = false;
@@ -282,47 +332,71 @@ function Hero() {
     };
 
     const handlePointerLeave = () => {
-      if (isDragging) {
-        releaseDrag();
+      if (state.isDragging) {
+        endDrag();
       }
     };
 
     const handleWindowBlur = () => {
-      if (isDragging) {
-        releaseDrag();
+      if (state.isDragging) {
+        endDrag();
       }
     };
 
-    const handlePointerDown = (event) => {
+    const beginDrag = (event) => {
       if (event.pointerType === 'mouse' && event.button !== 0) {
         return;
       }
 
+      if (!loopWidth) {
+        measureLoopWidth();
+      }
+
       event.preventDefault();
-      pointerId = event.pointerId;
-      startX = event.clientX;
-      startScrollLeft = carousel.scrollLeft;
-      isDragging = true;
+      state.pointerId = event.pointerId;
+      state.startX = event.clientX;
+      state.startScrollLeft = carousel.scrollLeft;
+      state.isDragging = true;
       suppressClick = false;
-      lastTime = 0;
-      resumeStartTime = null;
+      state.lastTime = 0;
+      state.resumeStartTime = null;
       carousel.classList.add('is-dragging');
-      carousel.setPointerCapture(pointerId);
+      carousel.setPointerCapture(state.pointerId);
     };
 
-    const handlePointerMove = (event) => {
-      if (!isDragging || event.pointerId !== pointerId) {
+    const moveDrag = (event) => {
+      if (!state.isDragging || event.pointerId !== state.pointerId) {
         return;
       }
 
-      const deltaX = event.clientX - startX;
+      const deltaX = event.clientX - state.startX;
       if (Math.abs(deltaX) > 6) {
         suppressClick = true;
       }
 
-      carousel.scrollLeft = startScrollLeft - deltaX;
-      syncLoopPosition();
+      carousel.scrollLeft = state.startScrollLeft - deltaX;
+      normalizeLoopPosition();
       event.preventDefault();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') {
+        return;
+      }
+
+      state.lastTime = 0;
+      waitForLayoutReady();
+    };
+
+    const handleResize = () => {
+      if (resizeRafId) {
+        window.cancelAnimationFrame(resizeRafId);
+      }
+
+      resizeRafId = window.requestAnimationFrame(() => {
+        measureLoopWidth();
+        state.lastTime = 0;
+      });
     };
 
     const handleClickCapture = (event) => {
@@ -334,34 +408,40 @@ function Hero() {
       event.stopPropagation();
     };
 
-    measure();
+    waitForLayoutReady();
     rafId = window.requestAnimationFrame(animate);
 
-    carousel.addEventListener('pointerdown', handlePointerDown);
+    carousel.addEventListener('pointerdown', beginDrag);
     carousel.addEventListener('pointerleave', handlePointerLeave);
-    carousel.addEventListener('pointermove', handlePointerMove);
-    carousel.addEventListener('pointerup', releaseDrag);
-    carousel.addEventListener('pointercancel', releaseDrag);
-    carousel.addEventListener('lostpointercapture', releaseDrag);
+    carousel.addEventListener('pointermove', moveDrag);
+    carousel.addEventListener('pointerup', endDrag);
+    carousel.addEventListener('pointercancel', endDrag);
+    carousel.addEventListener('lostpointercapture', endDrag);
     carousel.addEventListener('click', handleClickCapture, true);
-    window.addEventListener('pointerup', releaseDrag);
-    window.addEventListener('pointercancel', releaseDrag);
+    window.addEventListener('pointerup', endDrag);
+    window.addEventListener('pointercancel', endDrag);
     window.addEventListener('blur', handleWindowBlur);
-    window.addEventListener('resize', measure);
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       window.cancelAnimationFrame(rafId);
-      carousel.removeEventListener('pointerdown', handlePointerDown);
+      window.cancelAnimationFrame(resizeRafId);
+      window.cancelAnimationFrame(readyRafId);
+      carousel.removeEventListener('pointerdown', beginDrag);
       carousel.removeEventListener('pointerleave', handlePointerLeave);
-      carousel.removeEventListener('pointermove', handlePointerMove);
-      carousel.removeEventListener('pointerup', releaseDrag);
-      carousel.removeEventListener('pointercancel', releaseDrag);
-      carousel.removeEventListener('lostpointercapture', releaseDrag);
+      carousel.removeEventListener('pointermove', moveDrag);
+      carousel.removeEventListener('pointerup', endDrag);
+      carousel.removeEventListener('pointercancel', endDrag);
+      carousel.removeEventListener('lostpointercapture', endDrag);
       carousel.removeEventListener('click', handleClickCapture, true);
-      window.removeEventListener('pointerup', releaseDrag);
-      window.removeEventListener('pointercancel', releaseDrag);
+      window.removeEventListener('pointerup', endDrag);
+      window.removeEventListener('pointercancel', endDrag);
       window.removeEventListener('blur', handleWindowBlur);
-      window.removeEventListener('resize', measure);
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
@@ -374,8 +454,7 @@ function Hero() {
         muted
         loop
         playsInline
-        preload="metadata"
-        poster={asset('works/aigc-cosmetic.jpg')}
+        preload="auto"
       />
       <div className="hero-scrim" />
       <div className="container hero-content hero-cover-layout">
@@ -429,6 +508,8 @@ function Hero() {
 }
 
 function About() {
+  const [activeCareerIndex, setActiveCareerIndex] = useState(null);
+
   const metrics = [
     { value: '6+', label: '设计经验' },
     { value: '30+', label: '项目落地' },
@@ -553,16 +634,30 @@ function About() {
         <div className="career-block">
           <p>CAREER PATH</p>
           <div className="career-timeline">
-            {careerItems.map((item) => (
+            {careerItems.map((item, index) => (
               <article className="career-item" key={item.title}>
                 <span>{item.time}</span>
                 <h3>{item.title}</h3>
                 <div>
                   {item.tags.map((tag) => (
                     item.tagDetail ? (
-                      <span className="career-tag-card" key={tag}>
-                        <strong>{tag}</strong>
-                        <span className="career-tag-popover" aria-hidden="true">
+                      <span className={`career-tag-card${activeCareerIndex === index ? ' is-mobile-open' : ''}`} key={tag}>
+                        <strong
+                          className={`career-tag-trigger${activeCareerIndex === index ? ' is-active' : ''}`}
+                          role="button"
+                          tabIndex={0}
+                          aria-expanded={activeCareerIndex === index}
+                          onClick={() => setActiveCareerIndex((current) => (current === index ? null : index))}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              setActiveCareerIndex((current) => (current === index ? null : index));
+                            }
+                          }}
+                        >
+                          {tag}
+                        </strong>
+                        <span className="career-tag-popover" aria-hidden={activeCareerIndex === index ? undefined : true}>
                           <span>
                             <em>关键词</em>
                             <b>{item.tagDetail.keywords}</b>
@@ -676,8 +771,9 @@ function MotionVideo() {
           <video
             className="motion-video"
             src={asset('videos/motion-visual.mp4')}
+            poster={asset('videos/motion-visual-poster.jpg')}
             controls
-            preload="none"
+            preload="metadata"
           >
             当前浏览器不支持视频播放。
           </video>
@@ -699,8 +795,38 @@ function IpBrand() {
           <span aria-hidden="true">↘</span>
         </div>
         <p className="ip-brand-summary">
-          围绕角色设定、表情延展、周边方案与场景化应用，展示可继续扩展的 IP / 品牌内容方向。
+          围绕角色设定、表情延展、文创与场景化应用，展示 IP / 品牌的内容方向。
         </p>
+        <div className="ip-brand-showcase">
+          <article className="ip-brand-video-card" aria-label="IP与品牌视频展示">
+            <div className="ip-brand-video-frame">
+              <video
+                className="ip-brand-video"
+                src={asset('videos/ip-brand-motion.mp4')}
+                autoPlay
+                muted
+                loop
+                playsInline
+                controls
+                preload="metadata"
+              />
+            </div>
+          </article>
+          <article className="ip-brand-hero-card" aria-label="IP与品牌主视觉">
+            <div className="ip-brand-hero-image">
+              <img
+                src={asset('ip-brand/ip-brand-hero.png')}
+                alt="IP与品牌主视觉"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+            <div className="ip-brand-meta">
+              <h3>IP视觉总览</h3>
+              <span>角色集合 / 品牌延展</span>
+            </div>
+          </article>
+        </div>
         <div className="ip-brand-grid" aria-label="IP与品牌展示">
           {ipBrandWorks.map((item) => (
             <article className="ip-brand-card" key={item.title}>
@@ -881,7 +1007,7 @@ export default function App() {
 
     revealSections.forEach((section) => observer.observe(section));
 
-    const parallaxTargets = [...root.querySelectorAll('.project-card img, .gallery-image img, .motion-video, .ip-brand-image img')];
+    const parallaxTargets = [...root.querySelectorAll('.project-card img, .gallery-image img, .motion-video, .ip-brand-hero-image img, .ip-brand-image img')];
     const activeParallaxTargets = new Set();
     let ticking = false;
 
