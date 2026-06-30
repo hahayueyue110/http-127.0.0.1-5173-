@@ -4,7 +4,7 @@ import { useState } from 'react';
 import TiltedCard from './components/TiltedCard.jsx';
 import TiltedPanel from './components/TiltedPanel.jsx';
 
-const asset = (path) => `/assets/${path}`;
+const asset = (path) => `assets/${path}`;
 
 const navItems = [
   { label: '工作经历', href: '#about' },
@@ -196,252 +196,228 @@ function Hero() {
       return undefined;
     }
 
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let loopWidth = 0;
-    let rafId = 0;
-    let suppressClick = false;
-    let resizeRafId = 0;
-    let readyRafId = 0;
-    const state = {
-      lastTime: 0,
-      pointerId: null,
-      startX: 0,
-      startScrollLeft: 0,
-      isDragging: false,
-      resumeStartTime: null,
-      isReady: false,
-    };
-    const resumeDuration = 720;
-    const loopBufferRatio = 0.5;
+    const desktopQuery = window.matchMedia('(min-width: 761px)');
     const speed = 0.045;
+    let cleanupCarousel = () => {};
 
-    const setReady = () => {
-      if (state.isReady) {
-        return;
-      }
-
-      state.isReady = true;
-      carousel.classList.add('is-ready');
-    };
-
-    const setToMiddle = (force = false) => {
-      if (!loopWidth) {
-        return;
-      }
-
-      if (force || carousel.scrollLeft === 0) {
-        carousel.scrollLeft = loopWidth;
-      }
-    };
-
-    const normalizeLoopPosition = (force = false) => {
-      if (!loopWidth) {
-        return;
-      }
-
-      if (force) {
-        setToMiddle(true);
-        return;
-      }
-
-      const lowerBound = loopWidth * loopBufferRatio;
-      const upperBound = loopWidth * (2 - loopBufferRatio);
-
-      if (carousel.scrollLeft <= lowerBound) {
-        carousel.scrollLeft += loopWidth;
-      } else if (carousel.scrollLeft >= upperBound) {
-        carousel.scrollLeft -= loopWidth;
-      }
-    };
-
-    const measureLoopWidth = () => {
-      loopWidth = sets[0].getBoundingClientRect().width;
-      if (!loopWidth) {
-        return false;
-      }
-
-      setToMiddle(carousel.scrollLeft === 0);
-      normalizeLoopPosition();
-      setReady();
-      return true;
-    };
-
-    const waitForLayoutReady = (attempt = 0) => {
-      if (measureLoopWidth()) {
-        return;
-      }
-
-      if (attempt >= 18) {
-        return;
-      }
-
-      readyRafId = window.requestAnimationFrame(() => {
-        waitForLayoutReady(attempt + 1);
+    const resetSets = () => {
+      carousel.scrollLeft = 0;
+      sets.forEach((set) => {
+        set.style.transform = '';
       });
     };
 
-    const animate = (time) => {
-      if (!state.lastTime) {
-        state.lastTime = time;
-      }
+    const setupDesktopCarousel = () => {
+      const [firstSet, secondSet] = sets;
+      let trackWidth = 0;
+      let rafId = 0;
+      let resizeRafId = 0;
+      let readyRafId = 0;
+      let lastTime = 0;
+      let firstX = 0;
+      let secondX = 0;
 
-      const delta = time - state.lastTime;
-      state.lastTime = time;
+      const applyTransform = () => {
+        firstSet.style.transform = `translate3d(${firstX}px, 0, 0)`;
+        secondSet.style.transform = `translate3d(${secondX}px, 0, 0)`;
+      };
 
-      if (!prefersReducedMotion && !state.isDragging && loopWidth) {
-        let speedFactor = 1;
-
-        if (state.resumeStartTime !== null) {
-          const progress = Math.min((time - state.resumeStartTime) / resumeDuration, 1);
-          speedFactor = progress * progress * (3 - 2 * progress);
-
-          if (progress >= 1) {
-            state.resumeStartTime = null;
-          }
+      const measureTrack = (resetPosition = false) => {
+        const nextTrackWidth = firstSet.getBoundingClientRect().width;
+        if (!nextTrackWidth) {
+          return false;
         }
 
-        carousel.scrollLeft += delta * speed * speedFactor;
-        normalizeLoopPosition();
-      }
+        trackWidth = nextTrackWidth;
+        if (resetPosition) {
+          firstX = 0;
+          secondX = trackWidth;
+          applyTransform();
+        }
 
-      rafId = window.requestAnimationFrame(animate);
-    };
+        return true;
+      };
 
-    const endDrag = (event) => {
-      if (event && state.pointerId !== null && 'pointerId' in event && event.pointerId !== state.pointerId) {
-        return;
-      }
+      const waitForLayoutReady = (attempt = 0) => {
+        if (measureTrack(attempt === 0)) {
+          return;
+        }
 
-      if (!state.isDragging && state.pointerId === null) {
-        return;
-      }
+        if (attempt >= 24) {
+          return;
+        }
 
-      if (state.pointerId !== null && carousel.hasPointerCapture(state.pointerId)) {
-        carousel.releasePointerCapture(state.pointerId);
-      }
+        readyRafId = window.requestAnimationFrame(() => {
+          waitForLayoutReady(attempt + 1);
+        });
+      };
 
-      state.pointerId = null;
-      state.isDragging = false;
-      state.lastTime = 0;
-      state.resumeStartTime = performance.now();
-      normalizeLoopPosition();
-      carousel.classList.remove('is-dragging');
-      window.setTimeout(() => {
-        suppressClick = false;
-      }, 120);
-    };
+      const tick = (time) => {
+        if (!lastTime) {
+          lastTime = time;
+        }
 
-    const handlePointerLeave = () => {
-      if (state.isDragging) {
-        endDrag();
-      }
-    };
+        const delta = Math.min(time - lastTime, 64);
+        lastTime = time;
 
-    const handleWindowBlur = () => {
-      if (state.isDragging) {
-        endDrag();
-      }
-    };
+        if (trackWidth) {
+          const distance = delta * speed;
+          firstX -= distance;
+          secondX -= distance;
 
-    const beginDrag = (event) => {
-      if (event.pointerType === 'mouse' && event.button !== 0) {
-        return;
-      }
+          if (firstX <= -trackWidth) {
+            firstX = secondX + trackWidth;
+          }
 
-      if (!loopWidth) {
-        measureLoopWidth();
-      }
+          if (secondX <= -trackWidth) {
+            secondX = firstX + trackWidth;
+          }
 
-      event.preventDefault();
-      state.pointerId = event.pointerId;
-      state.startX = event.clientX;
-      state.startScrollLeft = carousel.scrollLeft;
-      state.isDragging = true;
-      suppressClick = false;
-      state.lastTime = 0;
-      state.resumeStartTime = null;
-      carousel.classList.add('is-dragging');
-      carousel.setPointerCapture(state.pointerId);
-    };
+          applyTransform();
+        }
 
-    const moveDrag = (event) => {
-      if (!state.isDragging || event.pointerId !== state.pointerId) {
-        return;
-      }
+        rafId = window.requestAnimationFrame(tick);
+      };
 
-      const deltaX = event.clientX - state.startX;
-      if (Math.abs(deltaX) > 6) {
-        suppressClick = true;
-      }
+      const handleResize = () => {
+        if (resizeRafId) {
+          window.cancelAnimationFrame(resizeRafId);
+        }
 
-      carousel.scrollLeft = state.startScrollLeft - deltaX;
-      normalizeLoopPosition();
-      event.preventDefault();
-    };
+        resizeRafId = window.requestAnimationFrame(() => {
+          measureTrack(true);
+          lastTime = 0;
+        });
+      };
 
-    const handleVisibilityChange = () => {
-      if (document.visibilityState !== 'visible') {
-        return;
-      }
-
-      state.lastTime = 0;
+      resetSets();
       waitForLayoutReady();
-    };
+      rafId = window.requestAnimationFrame(tick);
+      window.addEventListener('resize', handleResize);
+      window.addEventListener('orientationchange', handleResize);
 
-    const handleResize = () => {
-      if (resizeRafId) {
+      return () => {
+        window.cancelAnimationFrame(rafId);
         window.cancelAnimationFrame(resizeRafId);
-      }
-
-      resizeRafId = window.requestAnimationFrame(() => {
-        measureLoopWidth();
-        state.lastTime = 0;
-      });
+        window.cancelAnimationFrame(readyRafId);
+        window.removeEventListener('resize', handleResize);
+        window.removeEventListener('orientationchange', handleResize);
+        resetSets();
+      };
     };
 
-    const handleClickCapture = (event) => {
-      if (!suppressClick) {
-        return;
-      }
+    const setupMobileCarousel = () => {
+      let loopWidth = 0;
+      let rafId = 0;
+      let resizeRafId = 0;
+      let readyRafId = 0;
+      let lastTime = 0;
 
-      event.preventDefault();
-      event.stopPropagation();
+      const normalizePosition = () => {
+        if (!loopWidth) {
+          return;
+        }
+
+        while (carousel.scrollLeft >= loopWidth * 2) {
+          carousel.scrollLeft -= loopWidth;
+        }
+
+        while (carousel.scrollLeft < loopWidth) {
+          carousel.scrollLeft += loopWidth;
+        }
+      };
+
+      const measureLoopWidth = (resetPosition = false) => {
+        const nextLoopWidth = sets[0].getBoundingClientRect().width;
+        if (!nextLoopWidth) {
+          return false;
+        }
+
+        loopWidth = nextLoopWidth;
+        if (resetPosition || carousel.scrollLeft < 1) {
+          carousel.scrollLeft = loopWidth;
+        }
+
+        normalizePosition();
+        return true;
+      };
+
+      const waitForLayoutReady = (attempt = 0) => {
+        if (measureLoopWidth(attempt === 0)) {
+          return;
+        }
+
+        if (attempt >= 24) {
+          return;
+        }
+
+        readyRafId = window.requestAnimationFrame(() => {
+          waitForLayoutReady(attempt + 1);
+        });
+      };
+
+      const tick = (time) => {
+        if (!lastTime) {
+          lastTime = time;
+        }
+
+        const delta = Math.min(time - lastTime, 64);
+        lastTime = time;
+
+        if (loopWidth) {
+          carousel.scrollLeft += delta * speed;
+          normalizePosition();
+        }
+
+        rafId = window.requestAnimationFrame(tick);
+      };
+
+      const handleResize = () => {
+        if (resizeRafId) {
+          window.cancelAnimationFrame(resizeRafId);
+        }
+
+        resizeRafId = window.requestAnimationFrame(() => {
+          measureLoopWidth(true);
+          lastTime = 0;
+        });
+      };
+
+      resetSets();
+      waitForLayoutReady();
+      rafId = window.requestAnimationFrame(tick);
+      window.addEventListener('resize', handleResize);
+      window.addEventListener('orientationchange', handleResize);
+
+      return () => {
+        window.cancelAnimationFrame(rafId);
+        window.cancelAnimationFrame(resizeRafId);
+        window.cancelAnimationFrame(readyRafId);
+        window.removeEventListener('resize', handleResize);
+        window.removeEventListener('orientationchange', handleResize);
+        resetSets();
+      };
     };
 
-    waitForLayoutReady();
-    rafId = window.requestAnimationFrame(animate);
+    const setupCarousel = () => {
+      cleanupCarousel();
+      cleanupCarousel = desktopQuery.matches ? setupDesktopCarousel() : setupMobileCarousel();
+    };
 
-    carousel.addEventListener('pointerdown', beginDrag);
-    carousel.addEventListener('pointerleave', handlePointerLeave);
-    carousel.addEventListener('pointermove', moveDrag);
-    carousel.addEventListener('pointerup', endDrag);
-    carousel.addEventListener('pointercancel', endDrag);
-    carousel.addEventListener('lostpointercapture', endDrag);
-    carousel.addEventListener('click', handleClickCapture, true);
-    window.addEventListener('pointerup', endDrag);
-    window.addEventListener('pointercancel', endDrag);
-    window.addEventListener('blur', handleWindowBlur);
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('orientationchange', handleResize);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    setupCarousel();
+    if (desktopQuery.addEventListener) {
+      desktopQuery.addEventListener('change', setupCarousel);
+    } else {
+      desktopQuery.addListener(setupCarousel);
+    }
 
     return () => {
-      window.cancelAnimationFrame(rafId);
-      window.cancelAnimationFrame(resizeRafId);
-      window.cancelAnimationFrame(readyRafId);
-      carousel.removeEventListener('pointerdown', beginDrag);
-      carousel.removeEventListener('pointerleave', handlePointerLeave);
-      carousel.removeEventListener('pointermove', moveDrag);
-      carousel.removeEventListener('pointerup', endDrag);
-      carousel.removeEventListener('pointercancel', endDrag);
-      carousel.removeEventListener('lostpointercapture', endDrag);
-      carousel.removeEventListener('click', handleClickCapture, true);
-      window.removeEventListener('pointerup', endDrag);
-      window.removeEventListener('pointercancel', endDrag);
-      window.removeEventListener('blur', handleWindowBlur);
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('orientationchange', handleResize);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (desktopQuery.removeEventListener) {
+        desktopQuery.removeEventListener('change', setupCarousel);
+      } else {
+        desktopQuery.removeListener(setupCarousel);
+      }
+      cleanupCarousel();
     };
   }, []);
 
@@ -808,7 +784,8 @@ function IpBrand() {
                 loop
                 playsInline
                 controls
-                preload="metadata"
+                preload="auto"
+                poster={asset('ip-brand/ip-brand-hero.png')}
               />
             </div>
           </article>
@@ -817,7 +794,7 @@ function IpBrand() {
               <img
                 src={asset('ip-brand/ip-brand-hero.png')}
                 alt="IP与品牌主视觉"
-                loading="lazy"
+                loading="eager"
                 decoding="async"
               />
             </div>
@@ -831,7 +808,7 @@ function IpBrand() {
           {ipBrandWorks.map((item) => (
             <article className="ip-brand-card" key={item.title}>
               <div className="ip-brand-image">
-                <img src={item.image} alt={item.title} loading="lazy" decoding="async" />
+                <img src={item.image} alt={item.title} loading="eager" decoding="async" />
               </div>
               <div className="ip-brand-meta">
                 <h3>{item.title}</h3>
