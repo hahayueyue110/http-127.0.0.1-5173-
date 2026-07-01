@@ -21,7 +21,7 @@ const stats = [
 ];
 
 const heroCarouselImages = Array.from({ length: 9 }, (_, index) => ({
-  src: asset(`nav-carousel/nav-${String(index + 1).padStart(2, '0')}.jpg`),
+  src: asset(`nav-carousel/nav-${String(index + 1).padStart(2, '0')}.webp`),
   alt: `导航作品 ${index + 1}`,
 }));
 
@@ -68,47 +68,47 @@ const featuredWorks = [
   {
     title: '欧莱雅小蜜罐详情视觉',
     category: 'AIGC视觉 / 卖点表达',
-    image: asset('works/work-card-01.jpg'),
+    image: asset('works/work-card-01.webp'),
     description: '',
   },
   {
     title: '信息层级 /线稿表达',
     category: '',
-    image: asset('works/work-card-02.jpg'),
+    image: asset('works/work-card-02.webp'),
     description: '',
   },
   {
     title: '美的电饭煲详情视觉',
     category: 'AIGC视觉 / 卖点表达',
-    image: asset('works/work-card-04.jpg'),
+    image: asset('works/work-card-04.webp'),
     description: '',
   },
   {
     title: '信息层级 /线稿表达',
     category: '',
-    image: asset('works/work-card-03.jpg'),
+    image: asset('works/work-card-03.webp'),
     description: '',
   },
 ];
 
 const galleryWorks = [
-  { title: '净化器场景', meta: '悬浮纯净/呼吸异界', image: asset('gallery/gallery-01.png') },
-  { title: '扫地机器人场景', meta: '无尘边界 / 窗纳自然', image: asset('gallery/gallery-02.png') },
-  { title: '蒟蒻果冻场景', meta: '清润多汁 / 沁凉爽口', image: asset('gallery/gallery-03.png') },
-  { title: '牛乳炖蛋糕场景', meta: '云柔蛋奶/晴空嫩滑', image: asset('gallery/gallery-04.png') },
-  { title: '美妆场景', meta: '晶透肽润 / 虫草沁水', image: asset('gallery/gallery-05.png') },
-  { title: '手机场景', meta: '超广掌镜 / 仰拍动势', image: asset('gallery/gallery-06.png') },
-  { title: '挂脖风扇场景', meta: '雪颈凉涡 / 卧冰扇爽', image: asset('gallery/gallery-07.png') },
-  { title: '蓝牙音箱场景', meta: '沙地枯木 / 复古音箱', image: asset('gallery/gallery-08.png') },
-  { title: '果冻场景', meta: 'Q弹冰爽 / 冻爽多汁', image: asset('gallery/gallery-09.png') },
+  { title: '净化器场景', meta: '悬浮纯净/呼吸异界', image: asset('gallery/gallery-01.webp') },
+  { title: '扫地机器人场景', meta: '无尘边界 / 窗纳自然', image: asset('gallery/gallery-02.webp') },
+  { title: '蒟蒻果冻场景', meta: '清润多汁 / 沁凉爽口', image: asset('gallery/gallery-03.webp') },
+  { title: '牛乳炖蛋糕场景', meta: '云柔蛋奶/晴空嫩滑', image: asset('gallery/gallery-04.webp') },
+  { title: '美妆场景', meta: '晶透肽润 / 虫草沁水', image: asset('gallery/gallery-05.webp') },
+  { title: '手机场景', meta: '超广掌镜 / 仰拍动势', image: asset('gallery/gallery-06.webp') },
+  { title: '挂脖风扇场景', meta: '雪颈凉涡 / 卧冰扇爽', image: asset('gallery/gallery-07.webp') },
+  { title: '蓝牙音箱场景', meta: '沙地枯木 / 复古音箱', image: asset('gallery/gallery-08.webp') },
+  { title: '果冻场景', meta: 'Q弹冰爽 / 冻爽多汁', image: asset('gallery/gallery-09.webp') },
 ];
 
 const ipBrandWorks = [
-  { title: 'IP基础设定页', meta: '品牌核心形象 & 世界观设定', image: asset('ip-brand/ip-brand-01.jpg') },
-  { title: 'IP人物档案', meta: '角色人设档案 & 情绪表情库', image: asset('ip-brand/ip-brand-02.jpg') },
-  { title: 'IP 标准规范', meta: '三视图 & 动态动作设计', image: asset('ip-brand/ip-brand-03.jpg') },
-  { title: 'IP形象拓展', meta: '换装 & 多元场景延展', image: asset('ip-brand/ip-brand-04.jpg') },
-  { title: 'IP全家福', meta: '全系列衍生&周边集合', image: asset('ip-brand/ip-brand-05.png') },
+  { title: 'IP基础设定页', meta: '品牌核心形象 & 世界观设定', image: asset('ip-brand/ip-brand-01.webp') },
+  { title: 'IP人物档案', meta: '角色人设档案 & 情绪表情库', image: asset('ip-brand/ip-brand-02.webp') },
+  { title: 'IP 标准规范', meta: '三视图 & 动态动作设计', image: asset('ip-brand/ip-brand-03.webp') },
+  { title: 'IP形象拓展', meta: '换装 & 多元场景延展', image: asset('ip-brand/ip-brand-04.webp') },
+  { title: 'IP全家福', meta: '全系列衍生&周边集合', image: asset('ip-brand/ip-brand-05.webp') },
 ];
 
 const capabilities = [
@@ -785,14 +785,14 @@ function IpBrand() {
                 playsInline
                 controls
                 preload="auto"
-                poster={asset('ip-brand/ip-brand-hero.png')}
+                poster={asset('ip-brand/ip-brand-hero.webp')}
               />
             </div>
           </article>
           <article className="ip-brand-hero-card" aria-label="IP与品牌主视觉">
             <div className="ip-brand-hero-image">
               <img
-                src={asset('ip-brand/ip-brand-hero.png')}
+                src={asset('ip-brand/ip-brand-hero.webp')}
                 alt="IP与品牌主视觉"
                 loading="eager"
                 decoding="async"
