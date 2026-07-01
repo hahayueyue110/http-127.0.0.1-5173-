@@ -191,7 +191,7 @@ function Hero() {
       return undefined;
     }
 
-    const sets = carousel.querySelectorAll('.hero-carousel-set');
+    const sets = Array.prototype.slice.call(carousel.querySelectorAll('.hero-carousel-set'));
     if (sets.length < 3) {
       return undefined;
     }
@@ -202,13 +202,14 @@ function Hero() {
 
     const resetSets = () => {
       carousel.scrollLeft = 0;
-      sets.forEach((set) => {
-        set.style.transform = '';
-      });
+      for (let index = 0; index < sets.length; index += 1) {
+        sets[index].style.transform = '';
+      }
     };
 
     const setupDesktopCarousel = () => {
-      const [firstSet, secondSet] = sets;
+      const firstSet = sets[0];
+      const secondSet = sets[1];
       let trackWidth = 0;
       let rafId = 0;
       let resizeRafId = 0;
@@ -223,7 +224,12 @@ function Hero() {
       };
 
       const measureTrack = (resetPosition = false) => {
-        const nextTrackWidth = firstSet.getBoundingClientRect().width;
+        const cards = Array.prototype.slice.call(firstSet.children);
+        const nextTrackWidth = cards.reduce((width, card) => {
+          const styles = window.getComputedStyle(card);
+          return width + card.offsetWidth + parseFloat(styles.marginRight || '0');
+        }, 0);
+
         if (!nextTrackWidth) {
           return false;
         }
@@ -941,31 +947,47 @@ export default function App() {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     root.classList.add('motion-ready');
 
+    const markSectionsInView = () => {
+      const sections = Array.prototype.slice.call(root.querySelectorAll('.section, .contact-section'));
+      for (let index = 0; index < sections.length; index += 1) {
+        sections[index].classList.add('is-inview');
+      }
+    };
+
     if (prefersReducedMotion) {
       root.classList.add('motion-reduced', 'opening-played');
-      root.querySelectorAll('.section, .contact-section').forEach((section) => {
-        section.classList.add('is-inview');
-      });
+      markSectionsInView();
       return undefined;
     }
 
-    const revealSections = root.querySelectorAll(
-      '.about-section, .capabilities-section, .work-section, .gallery-section, .motion-section, .ip-brand-section, .strengths-section, .contact-section',
+    const revealSections = Array.prototype.slice.call(
+      root.querySelectorAll(
+        '.about-section, .capabilities-section, .work-section, .gallery-section, .motion-section, .ip-brand-section, .strengths-section, .contact-section',
+      ),
     );
 
-    revealSections.forEach((section) => {
-      section
-        .querySelectorAll(
+    for (let sectionIndex = 0; sectionIndex < revealSections.length; sectionIndex += 1) {
+      const section = revealSections[sectionIndex];
+      const items = Array.prototype.slice.call(
+        section.querySelectorAll(
           '.career-item, .capability-card, .project-card, .gallery-card, .ip-brand-card, .strength-grid > *, .contact-card, .contact-signature',
-        )
-        .forEach((item, index) => {
-          item.style.setProperty('--reveal-index', index);
-        });
-    });
+        ),
+      );
+      for (let itemIndex = 0; itemIndex < items.length; itemIndex += 1) {
+        items[itemIndex].style.setProperty('--reveal-index', itemIndex);
+      }
+    }
 
     const openingTimer = window.setTimeout(() => {
       root.classList.add('opening-played');
     }, 120);
+
+    if (!('IntersectionObserver' in window)) {
+      markSectionsInView();
+      return () => {
+        window.clearTimeout(openingTimer);
+      };
+    }
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -982,9 +1004,13 @@ export default function App() {
       },
     );
 
-    revealSections.forEach((section) => observer.observe(section));
+    for (let index = 0; index < revealSections.length; index += 1) {
+      observer.observe(revealSections[index]);
+    }
 
-    const parallaxTargets = [...root.querySelectorAll('.project-card img, .gallery-image img, .motion-video, .ip-brand-hero-image img, .ip-brand-image img')];
+    const parallaxTargets = Array.prototype.slice.call(
+      root.querySelectorAll('.project-card img, .gallery-image img, .motion-video, .ip-brand-hero-image img, .ip-brand-image img'),
+    );
     const activeParallaxTargets = new Set();
     let ticking = false;
 
